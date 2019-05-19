@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.LinkageMapper">
+
+	<resultMap type="linkage" id="linkageMap">
+		<result column="device_id" property="deviceId"/>
+		<result column="compare_symbol" property="compareSymbol"/>
+		<result column="compare_value" property="compareValue"/>
+	</resultMap>
+	
+	<select id="findByDeviceId" resultMap="linkageMap">
+		select * from linkage where device_id = #{deviceId}
+	</select>
+	
+	<select id="findById" resultMap="linkageMap">
+		select * from linkage where id = #{id}
+	</select>
+
+	<insert id="insert" parameterType="linkage" useGeneratedKeys="true" keyProperty="id">
+		insert into linkage (
+			alarming, compare_symbol, compare_value, device_id
+		)
+		values (
+			#{alarming}, #{compareSymbol},#{compareValue},#{deviceId}
+		)
+	</insert>
+	
+	<update id="update" parameterType="linkage">
+	  update linkage set
+	    alarming = #{alarming},
+	    compare_symbol = #{compareSymbol},
+	    compare_value = #{compareValue}
+	  where id = #{id}
+	</update>
+
+	<delete id="deleteById">
+		delete from linkage where id = #{id}
+	</delete>
+</mapper>

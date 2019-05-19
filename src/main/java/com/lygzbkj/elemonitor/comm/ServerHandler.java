@@ -1,0 +1,266 @@
+package com.lygzbkj.elemonitor.comm;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.lygzbkj.elemonitor.SpringUtil;
+import com.lygzbkj.elemonitor.Util;
+import com.lygzbkj.elemonitor.data.Device;
+import com.lygzbkj.elemonitor.data.Effect;
+import com.lygzbkj.elemonitor.data.MsgManager;
+import com.lygzbkj.elemonitor.data.MsgManager.OnMsgManagerStateChangedListener;
+import com.lygzbkj.elemonitor.data.MsgManagerState;
+import com.lygzbkj.elemonitor.data.Station;
+import com.lygzbkj.elemonitor.enums.NetMessageResultEnum;
+import com.lygzbkj.elemonitor.exception.NetMessageException;
+import com.lygzbkj.elemonitor.service.MsgManagerService;
+import com.lygzbkj.elemonitor.test.AnalysisReceivedErrorResult;
+import com.lygzbkj.elemonitor.test.NetMessageAnalysisResult;
+import com.lygzbkj.elemonitor.test.NetMessageSentResult;
+import com.lygzbkj.elemonitor.test.SendService;
+import com.lygzbkj.elemonitor.test.TestService;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+
+public class ServerHandler extends ChannelInboundHandlerAdapter {
+
+	public ChannelHandlerContext channel;
+	public long msgManagerId = 0;
+	private MsgManager msgManager;
+
+	// 是否已添加进map, 只有在第一次收到通信机id时将handler存入map, 之后此值为true
+	private boolean mapAdded = false;
+
+	/**
+	 * 保存所有已连接的通信管理机的handler, 方便全局搜索通信机的handler, 只有收到通信管理机id时才保存, 键为通信机id, 值为handler
+	 */
+	public static Map<Long, ServerHandler> channelMap = new HashMap<>();
+
+	private Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
+	private MsgManagerService msgManagerService = SpringUtil.getBean(MsgManagerService.class);
+	private TestService testService = SpringUtil.getBean(TestService.class);
+	private SendService sendService = SpringUtil.getBean(SendService.class);
+
+	@Override
+	public void channelActive(ChannelHandlerContext ctx) throws Exception {
+		super.channelActive(ctx);
+		channel = ctx;
+		logger.info("new channel " + ctx.channel().id().asShortText());
+	}
+
+	@Override
+	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+		ByteBuf m = (ByteBuf) msg;
+		NetMessageAnalysisResult result = new NetMessageAnalysisResult();
+		try {
+			byte[] req = new byte[m.readableBytes()];
+			m.readBytes(req);
+			MyClient.getIns().send(req);
+			String strMsg = Util.bytesToHexString(req);
+			result.setData(strMsg);
+			logger.info(strMsg);
+			
+			int startOne = 0;
+			while(startOne + 1 < req.length) {
+				int len = Util.bytesToInt(new byte[] {req[startOne], req[startOne + 1]});
+//				int len = req[startOne] << 8 | req[startOne + 1];
+				//一个报文的结束位置
+				int to = len + 8 + startOne;
+				if(to > req.length) {
+					//长度不匹配
+					AnalysisReceivedErrorResult errResult = new AnalysisReceivedErrorResult();
+					errResult.setCode(NetMessageResultEnum.ERR_LENGTH.getCode());
+					errResult.setMessage(NetMessageResultEnum.ERR_LENGTH.getMessage());
+					logger.error(NetMessageResultEnum.ERR_LENGTH.getMessage());
+//					result.addErrResult(errResult);
+					testService.broadcastReceived(result);
+					return;
+				}
+				byte[] byOne = Arrays.copyOfRange(req, startOne, to);
+				AnalysisReceivedErrorResult errResult = analysisOneMsg(byOne);
+//				result.addErrResult(errResult);
+				startOne = to;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			AnalysisReceivedErrorResult errResult = new AnalysisReceivedErrorResult();
+			errResult.setCode(NetMessageResultEnum.UNKNOW.getCode());
+			errResult.setMessage(e.getMessage());
+//			result.addErrResult(errResult);
+			
+			logger.error(e.getMessage());
+		} finally {
+			m.release();
+			// ReferenceCountUtil.release(msg);
+		}
+		testService.broadcastReceived(result);
+	}
+	
+	private AnalysisReceivedErrorResult analysisOneMsg(byte[] byOne) {
+		AnalysisReceivedErrorResult errResult = new AnalysisReceivedErrorResult();
+		errResult.setData(Util.bytesToHexString(byOne));
+		
+		byte[] by = new byte[byOne.length - 6];
+		by = Arrays.copyOfRange(byOne, 6, byOne.length);
+		byte[] byHead = Arrays.copyOfRange(byOne, 0, 6);
+		errResult.setHead(Util.bytesToHexString(byHead));
+		int managerNum = Util.bytesToInt(new byte[] {byOne[2], byOne[3], byOne[4], byOne[5]});
+//		int managerNum = (byOne[2] << 24) | (byOne[3] << 16) | (byOne[4] << 8) | byOne[5];
+		MsgManager mm = msgManagerService.findByCode(managerNum);
+
+		if (mm == null) {
+			errResult.setCode(NetMessageResultEnum.UNKNOW_MANAGER.getCode());
+			errResult.setMessage(NetMessageResultEnum.UNKNOW_MANAGER.getMessage() + managerNum);
+			logger.error(errResult.getMessage());
+			List<byte[]> list;
+			try {
+				list = MsgManager.analysisEveryOrder(by);
+				for(byte[] by1 : list) {
+					errResult.getListOne().add(Util.bytesToHexString(by1));
+				}
+			} catch (Exception e) {
+				errResult.setCode(NetMessageResultEnum.UNKNOW.getCode());
+				errResult.setMessage(e.getMessage());
+//					e.printStackTrace();
+			}
+			//testService.broadcastReceived(result);
+			return errResult;
+		}else {
+			if(msgManager != mm) {
+				msgManager = mm;
+				//添加状态监听器
+				msgManager.addMsgManagerStateChangedListener(onMsgManagerStateChangedListener);
+				msgManager.setMsgManagerState(MsgManagerState.SUCCESS);
+			}
+		}
+		
+		msgManagerId = msgManager.getId();
+		// 添加进map, 方便全局搜索
+		if (!mapAdded) {
+			mapAdded = true;
+			channelMap.put(msgManagerId, this);
+		}
+		// 设置设备值监听器
+		for (Device dev : msgManager.findAllDevice()) {
+			if(dev.getOnValueListener() == null) {
+				dev.setOnValueListener(new MyOnValueListener());
+			}
+			if(dev.getOnLinkageTriggeredListener() == null) {
+				dev.setOnLinkageTriggeredListener(new MyOnLinkageTriggeredListener());
+			}
+		}
+
+		try {
+			List<byte[]> list = msgManager.handler(by);
+			for(byte[] by1 : list) {
+				errResult.getListOne().add(Util.bytesToHexString(by1));
+			}
+			
+			//查看触发的连锁
+			//处理完报文再查看那些连锁触发了, 是为了将同一通信机的设备报文合并为一条报文, 防止一次发送多条数据
+			List<Effect> listTriggeredEffect = new ArrayList<>();
+			for (Device dev : msgManager.findAllDevice()) {
+				listTriggeredEffect.addAll(dev.getListTriggedEffect());
+			}
+			sendEffect(listTriggeredEffect);
+			
+			//testService.broadcastReceived(result);
+		}catch(NetMessageException e) {
+//			e.printStackTrace();
+			errResult.setCode(e.getCode());
+			errResult.setMessage(e.getMessage());
+			logger.error(e.getMessage());
+		}catch (Exception e) {
+			e.printStackTrace();
+			errResult.setCode(NetMessageResultEnum.UNKNOW.getCode());
+			errResult.setMessage(e.getMessage());
+			logger.error(e.getMessage());
+		}
+		return errResult;
+	}
+
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+		cause.printStackTrace();
+		ctx.close();
+		logger.info("channel " + ctx.channel().id().asShortText() + " is closed");
+	}
+
+	@Override
+	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+		super.channelInactive(ctx);
+		ctx.close();
+		if(null != msgManager) {
+			msgManager.setMsgManagerState(MsgManagerState.OFFLINE);
+		}
+		logger.info("channel " + ctx.channel().id().asShortText() + " is closed");
+	}
+
+	private void sendEffect(List<Effect> listEffect) {
+		sendService.ctrlEffectDevice(listEffect);
+	}
+	
+	//通信机连接状态改变监听器
+	private OnMsgManagerStateChangedListener onMsgManagerStateChangedListener = new OnMsgManagerStateChangedListener(){
+
+		@Override
+		public void onMsgManagerStateChanged(MsgManager msgManager, MsgManagerState state) {
+			if(null != msgManager.getSubstation()) {
+				Station s = msgManager.getSubstation().getStation();
+				if(null != s) {
+					s.refreshState();
+				}
+			}
+		}
+		
+	};
+	
+	public void send(byte[] by) {
+		if (null != channel) {
+			channel.writeAndFlush(Unpooled.copiedBuffer(by));
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * 全局发送函数
+	 * 
+	 * @param msgManagerId 通信机id
+	 * @param by
+	 */
+	public static NetMessageSentResult send(long msgManagerId, byte[] by) {
+		NetMessageSentResult sentResult = new NetMessageSentResult();
+		sentResult.setSentMsg(Util.bytesToHexString(by));
+		ServerHandler handler = channelMap.get(msgManagerId);
+		if (null != handler) {
+			handler.send(by);
+			sentResult.setCode(0);
+			return sentResult;
+		}else {
+			sentResult.setCode(1);
+			sentResult.setMessage("通信机未连接");
+		}
+		return sentResult;
+	}
+
+//	public static void main(String[] args) {
+//		byte[] b = new byte[] { 0x00, 0, 1, 0 };
+//		int managerNum = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+//		System.out.println(managerNum + "?");
+//	}
+
+}

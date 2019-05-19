@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.StationMapper">
+
+	<resultMap type="station" id="stationMap">
+		<id column="id" property="id" />
+		<result column="register_time" property="registerTime" />
+	</resultMap>
+
+	<select id="findById" resultMap="stationMap">
+		select * from station where id =
+		#{id}
+	</select>
+
+	<select id="findAll" resultMap="stationMap">
+		select * from station
+	</select>
+
+	<insert id="save" parameterType="station"
+		useGeneratedKeys="true" keyProperty="id">
+		insert into station (name,
+		address, lat, lng, remark,
+		register_time, tel)
+		values (
+		#{name},
+		#{address},
+		#{lat}, #{lng},
+		#{remark},
+		#{registerTime}, #{tel}
+		)
+	</insert>
+
+	<update id="update" parameterType="station">
+		update station set
+		name = #{name},
+		address = #{address},
+		lat = #{lat},
+		lng = #{lng},
+		remark = #{remark},
+		tel = #{tel}
+		where id = #{id}
+	</update>
+
+	<delete id="deleteById">
+		delete from station where id = #{id}
+	</delete>
+</mapper>

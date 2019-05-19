@@ -1,0 +1,59 @@
+html {
+	height: 100%
+}
+
+body {
+	height: 100%;
+	margin: 0px;
+	padding: 0px
+}
+
+#container {
+	height: auto;
+	min-height:100%;
+	background-color: #EFF4FA;
+}
+
+#nav-station{
+	width: 200px;
+	height: auto;
+	min-height:100%;
+	padding-right: 0px;
+	color: white;
+}
+
+#nav-station a{
+	color: white;
+}
+
+#p-address-name{
+	background-color: black;
+	color: white;
+	width: 100%;
+}
+
+.div-left-title{
+	background: #505258;
+}
+
+.title-icon{
+	width: 20px;
+	height: 20px;
+}
+
+caption {
+	caption-side: top;
+	text-align:center;
+}
+
+.icon-preview {
+    font-size: x-large;
+}
+
+.icon-main-preview {
+    font-size: 36px;
+}
+
+.icon-main-preview-group {
+    font-size: 24px;
+}

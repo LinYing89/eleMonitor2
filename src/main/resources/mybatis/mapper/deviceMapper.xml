@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.DeviceMapper">
+
+	<resultMap type="device" id="deviceMap">
+		<id column="id" property="id"/>
+		<result column="begin_address" property="beginAddress"/>
+		<result column="byte_order" property="byteOrder"/>
+		<result column="data_length" property="dataLength"/>
+		<result column="value_format" property="valueFormat"/>
+		<result column="value_type" property="valueType"/>
+		<result column="collector_id" property="collectorId"/>
+		<result column="sort_index" property="sortIndex"/>
+		<result column="alarm_trigger_value" property="alarmTriggerValue"/>
+		<result column="device_group_id" property="deviceGroupId"/>
+		<result column="sort_index_in_group" property="sortIndexInGroup"/>
+		<result column="device_category" property="deviceCategory"/>
+		<result column="place_id" property="placeId"/>
+	</resultMap>
+	
+	<select id="findByCollectorId" resultMap="deviceMap">
+		select * from device where collector_id = #{stationId}
+	</select>
+	
+	<select id="findById" resultMap="deviceMap">
+		select * from device where id = #{id}
+	</select>
+
+	<insert id="insert" parameterType="device" useGeneratedKeys="true" keyProperty="id">
+		insert into device (
+			begin_address, byte_order, coefficient, data_length, name, unit, 
+			value_format, value_type, collector_id, icon, place_id, device_category, sort_index, sort_index_in_group, value, alarm_trigger_value
+		)
+		values (
+			#{beginAddress}, #{byteOrder},#{coefficient},#{dataLength}, #{name},#{unit},
+			#{valueFormat}, #{valueType},#{collectorId},#{icon}, #{placeId},#{deviceCategory}, #{sortIndex},#{sortIndexInGroup},#{value},#{alarmTriggerValue}
+		)
+	</insert>
+	
+	<update id="update" parameterType="device">
+	  update device set
+	    begin_address = #{beginAddress},
+	    byte_order = #{byteOrder},
+	    coefficient = #{coefficient},
+	    data_length = #{dataLength},
+	    name = #{name},
+	    unit = #{unit},
+	    value_format = #{valueFormat},
+	    value_type = #{valueType},
+	    collector_id = #{collectorId},
+	    icon = #{icon},
+	    place_id = #{placeId},
+	    device_category = #{deviceCategory}
+	  where id = #{id}
+	</update>
+	
+	<update id="updateDeviceGroupId">
+	  update device set
+	    device_group_id = #{deviceGroupId}
+	  where id = #{deviceId}
+	</update>
+
+	<delete id="deleteById">
+		delete from device where id = #{id}
+	</delete>
+</mapper>

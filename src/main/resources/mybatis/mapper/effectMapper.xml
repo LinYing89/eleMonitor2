@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.EffectMapper">
+
+	<resultMap type="effect" id="effectMap">
+		<result column="dev_id" property="deviceId"/>
+		<result column="linkage_id" property="linkageId"/>
+	</resultMap>
+	
+	<select id="findByLinkageId" resultMap="effectMap">
+		select * from effect where linkage_id = #{linkageId}
+	</select>
+	
+	<select id="findById" resultMap="effectMap">
+		select * from effect where id = #{id}
+	</select>
+
+	<insert id="insert" parameterType="effect" useGeneratedKeys="true" keyProperty="id">
+		insert into effect (
+			value, dev_id, linkage_id
+		)
+		values (
+			#{value}, #{deviceId},#{linkageId}
+		)
+	</insert>
+	
+	<update id="update" parameterType="effect">
+	  update effect set
+	    value = #{value},
+	    dev_id = #{deviceId}
+	  where id = #{id}
+	</update>
+
+	<delete id="deleteById">
+		delete from effect where id = #{id}
+	</delete>
+</mapper>

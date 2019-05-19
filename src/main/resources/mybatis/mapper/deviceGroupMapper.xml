@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.DeviceGroupMapper">
+
+	<resultMap type="deviceGroup" id="deviceGroupMap">
+		<id column="id" property="id"/>
+		<result column="value_type" property="valueType"/>
+		<result column="sort_index" property="sortIndex"/>
+	</resultMap>
+	
+	<select id="findBySubstationId" resultMap="deviceGroupMap">
+		select * from device_group where substation_id = #{substationId}
+	</select>
+	
+	<select id="findById"  resultMap="deviceGroupMap">
+		select * from device_group where id = #{id}
+	</select>
+
+	<insert id="insert" parameterType="deviceGroup" useGeneratedKeys="true" keyProperty="id">
+		insert into device_group (
+			name, sort_index, value_type, substation_id
+		)
+		values (
+			#{name},#{sortIndex},#{valueType}, #{substationId}
+		)
+	</insert>
+	
+	<update id="update" parameterType="deviceGroup">
+	  update device_group set
+	    name = #{name}
+	  where id = #{id}
+	</update>
+
+	<delete id="deleteById">
+		delete from device_group where id = #{id}
+	</delete>
+</mapper>

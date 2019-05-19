@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+		<package name="com.lygzbkj.elemonitor.data" />
+	</typeAliases>
+
+	<typeHandlers>
+		<typeHandler
+			handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+			javaType="com.lygzbkj.elemonitor.data.DataType" />
+		<typeHandler
+			handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+			javaType="com.lygzbkj.elemonitor.data.DeviceCategory" />
+		<typeHandler
+			handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+			javaType="com.lygzbkj.elemonitor.data.DeviceType" />
+		<typeHandler
+			handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+			javaType="com.lygzbkj.elemonitor.data.DoorCardAuthority" />
+		<typeHandler
+			handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+			javaType="com.lygzbkj.elemonitor.data.ValueFormat" />
+		<typeHandler
+			handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+			javaType="com.lygzbkj.elemonitor.data.ValueType" />
+	</typeHandlers>
+</configuration>

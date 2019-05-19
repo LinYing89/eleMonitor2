@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.PlaceMapper">
+
+	<resultMap type="place" id="placeMap">
+		<id column="id" property="id"/>
+		<result column="substation_id" property="substationId"/>
+		<result column="sort_index" property="sortIndex"/>
+	</resultMap>
+	
+	<select id="findBySubstationId" resultMap="placeMap">
+		select * from place where substation_id = #{substationId}
+	</select>
+	
+	<select id="findById" resultMap="placeMap">
+		select * from place where id = #{id}
+	</select>
+
+	<insert id="insert" parameterType="place" useGeneratedKeys="true" keyProperty="id">
+		insert into place (
+			name, sort_index, substation_id
+		)
+		values (
+			#{name}, #{sortIndex}, #{substationId}
+		)
+	</insert>
+	
+	<update id="update" parameterType="place">
+	  update place set
+	    name = #{name},
+	    sort_index = #{sortIndex}
+	  where id = #{id}
+	</update>
+
+	<delete id="deleteById">
+		delete from place where id = #{id}
+	</delete>
+</mapper>

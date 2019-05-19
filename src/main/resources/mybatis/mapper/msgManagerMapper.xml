@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.MsgManagerMapper">
+
+	<resultMap type="msgManager" id="msgManagerMap">
+		<id column="id" property="id"/>
+		<result column="substation_id" property="substationId"/>
+	</resultMap>
+	
+	<select id="findBySubstationId" resultMap="msgManagerMap">
+		select * from msg_manager where substation_id = #{substationId}
+	</select>
+	
+	<select id="findById" resultMap="msgManagerMap">
+		select * from msg_manager where id = #{id}
+	</select>
+	
+	<select id="findByCode" resultMap="msgManagerMap">
+		select * from msg_manager where code = #{code}
+	</select>
+
+	<insert id="insert" parameterType="msgManager" useGeneratedKeys="true" keyProperty="id">
+		insert into msg_manager (
+			code, name, substation_id
+		)
+		values (
+			#{code}, #{name},#{substationId}
+		)
+	</insert>
+	
+	<update id="update" parameterType="collector">
+	  update msg_manager set
+	    code = #{code},
+	    name = #{name},
+	    substation_id = #{substationId}
+	  where id = #{id}
+	</update>
+
+	<delete id="deleteById">
+		delete from msg_manager where id = #{id}
+	</delete>
+</mapper>

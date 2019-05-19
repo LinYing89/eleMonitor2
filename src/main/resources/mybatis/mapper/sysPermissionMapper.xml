@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lygzbkj.elemonitor.mapper.SysPermissionMapper">
+
+	<select id="findByUsername" resultType="sysPermission">
+		select sp.* from user su 
+		left join user_roles sur on su.id = sur.user_id 
+		left join sys_role_permissions srp on sur.roles_id = srp.sys_role_id 
+		left join sys_permission sp on srp.permissions_id = sp.id where su.username = #{username}
+	</select>
+</mapper>
